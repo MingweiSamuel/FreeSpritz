@@ -3,3 +3,4 @@ bin/
 *.class
 *.project
 *.classpath
+*.xml
