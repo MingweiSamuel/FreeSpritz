@@ -128,13 +128,14 @@ public class FreeSpritz extends JFrame {
 				textIn.getHighlighter().removeAllHighlights();
 				textIn.setCaretPosition(0);
 				reader.stop(); // stop reader and ...
-				reader = null; //let the GC eat it
+				reader = null; // let the GC eat it
 				play.setText("\u25b6");
 			}
 		});
 		wpms = new JComboBox<Short>(WPM_SPEEDS);
 		wpms.setEditable(true);
 		wpms.setSelectedItem(wpm);
+		wpms.setTransferHandler(null); //no copy/paste
 		wpms.getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
 			
 			@Override
@@ -226,11 +227,11 @@ public class FreeSpritz extends JFrame {
 			}
 			throw new IllegalArgumentException("hightlight index may not be outside of the word");
 		}
-		if (word.length() > WORD_MAX)
-			throw new IllegalArgumentException("word is too long");
 		
 		StringBuilder builder = new StringBuilder();
 		int offset = highlight * 2 - word.length() + 1;
+		if (word.length() + Math.abs(offset) > WORD_MAX)
+			throw new IllegalArgumentException("word is too long");
 		if (offset < 0) {
 			char[] chars = new char[-offset];
 			Arrays.fill(chars, '\u00a0');
@@ -288,12 +289,12 @@ public class FreeSpritz extends JFrame {
 			Iterator<Integer> iter = words.keySet().iterator();
 			while (iter.hasNext() && !stop) {
 				try {
-					while (pause) { //pause if needed
+					while (pause) { // pause if needed
 						synchronized (lock) {
 							lock.wait();
 						}
 					}
-					//main stuffs
+					// main stuffs
 					int index = iter.next();
 					
 					long delay = (long) (MILLIS_PER_MINUTE / wpm);
@@ -321,24 +322,26 @@ public class FreeSpritz extends JFrame {
 		private void generateWords() {
 			final String in = textIn.getText();
 			StringBuilder word = new StringBuilder();
+			if (textIn.getCaretPosition() == textIn.getText().length())
+				textIn.setCaretPosition(0); //if we are at the end, reset to the top
 			for (int i = textIn.getCaretPosition(); i < in.length(); i++) {
-				if (Character.isWhitespace(in.charAt(i))) { //end of word
-					words.put(i, word.toString()); //write the index (note: last char) and word
-					word.setLength(0); //clear word
+				if (Character.isWhitespace(in.charAt(i))) { // end of word
+					words.put(i, word.toString()); // write the index (note: last char) and word
+					word.setLength(0); // clear word
 					continue;
 				}
 				word.append(in.charAt(i));
 				// put word if it ends in a hyphen
-				//  hyphen                 u2012 to u2015
-				if (in.charAt(i) == '-' || 0x2012 <= Character.getNumericValue(in.charAt(i)) && Character.getNumericValue(in.charAt(i)) <= 0x2015 ||
-						in.charAt(i) == '\u2053') { //swung dash
+				// hyphen u2012 to u2015
+				if (in.charAt(i) == '-' || 0x2012 <= Character.getNumericValue(in.charAt(i)) && Character.getNumericValue(in.charAt(i)) <= 0x2015 || in.charAt(i) == '\u2053') { // swung
+																																													// dash
 					words.put(i, word.toString());
 					word.setLength(0);
 				}
 			}
 			words.put(in.length(), word.toString());
 		}
-
+		
 		private void highlight(String word, int index) {
 			try {
 				textIn.getHighlighter().addHighlight(index - word.length(), index, painter);
@@ -350,10 +353,6 @@ public class FreeSpritz extends JFrame {
 		}
 		
 		private void display(String word) { // synchronized stops setWord() from being called concurrently
-			if (word.length() > WORD_MAX) { // if the word is too long, split in half (dumb splitting, should use hyphenation)
-				display(word.substring(0, word.length() / 2) + "-");
-				display(word.substring(word.length() / 2));
-			}
 			int cursor;
 			switch (word.length()) {
 			case 0:
@@ -380,6 +379,13 @@ public class FreeSpritz extends JFrame {
 				break;
 			default:
 				cursor = 4;
+			}
+			if (word.length() + Math.abs(cursor * 2 - word.length() + 1) > WORD_MAX) { // if the word is too long, split in half (dumb splitting, should use hyphenation)
+				display(word.substring(0, word.length() / 2) + "-");
+				try { Thread.sleep((long) (MILLIS_PER_MINUTE / wpm)); }
+				catch (InterruptedException ie) { ie.printStackTrace(); };
+				display(word.substring(word.length() / 2));
+				return;
 			}
 			setWord(word, cursor);
 		}
