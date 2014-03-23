@@ -34,7 +34,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 
-public class FreeSpritzFrame extends JFrame {
+public class FreeSpritz extends JFrame {
 	
 	// CONSTANTS //
 	private static final long serialVersionUID = -1703702421521172587L;
@@ -69,7 +69,7 @@ public class FreeSpritzFrame extends JFrame {
 	private short wpm = WPM_DEFAULT;
 	private Reader reader = null;
 	
-	public FreeSpritzFrame() {
+	public FreeSpritz() {
 		super("FreeSpritz v" + VERSION);
 		
 		label = new JLabel("Input text:");
@@ -269,7 +269,7 @@ public class FreeSpritzFrame extends JFrame {
 			
 			@Override
 			public void run() {
-				new FreeSpritzFrame().setVisible(true);
+				new FreeSpritz().setVisible(true);
 			}
 		});
 	}
