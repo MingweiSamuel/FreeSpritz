@@ -1,3 +1,4 @@
+/* Made by Mingwei Samuel */
 package com.lugtech.freespritz;
 
 import java.awt.Color;
